@@ -1,98 +1,249 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import RoundScreen from "@/components/RoundScreen";
+import React, { useState } from "react";
+import { Button, Image, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import words from "../../constants/words.json";
+import { PlayerTurnCard } from "@/components/PlayerTurnCard";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Player = {
+  id: number;
+  name: string;
+  eliminated: boolean;
+  role?: "impostor" | "normal";
+};
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+type Word = {
+  word: string;
+  hint: string;
+  category: string;
+};
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+export default function App() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [playerName, setPlayerName] = useState("");
+  const [impostors, setImpostors] = useState(1);
+  const [showHint, setShowHint] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showCard, setShowCard] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
+  const [startRound, setStartRound] = useState(false);
+  const [showRound, setShowRound] = useState(false);
+
+  const newGame = () => {
+    setShowHint(false);
+    setGameStarted(false);
+    setCurrentIndex(0);
+    setShowCard(false);
+    setSelectedWord(null);
+    setStartRound(false);
+    setShowRound(false);
+  }
+
+  // Iniciar juego
+  const startGame = () => {
+
+    if (players.length < 3) {
+      alert("Debe haber al menos 3 jugadores.");
+      return;
+    }
+
+    if (impostors < 1) {
+      alert("Debe haber al menos un impostor.");
+      return;
+    }
+
+    if (impostors >= players.length / 2) {
+      alert("El número de impostores debe ser menor que la mitad del número de jugadores.");
+      return;
+    }
+    const randomWord = getRandomWord();
+    setSelectedWord(randomWord);
+    // clonar array
+    let updated = [...players];
+
+    // elegir impostores aleatorios
+    let impostorIds: number[] = [];
+    while (impostorIds.length < impostors) {
+      const random = Math.floor(Math.random() * updated.length);
+      if (!impostorIds.includes(updated[random].id)) {
+        impostorIds.push(updated[random].id);
+      }
+    }
+
+    updated = updated.map((p) =>
+      impostorIds.includes(p.id)
+        ? { ...p, role: "impostor" }
+        : { ...p, role: "normal" }
+    );
+
+    setPlayers(updated);
+    setGameStarted(true);
+    setCurrentIndex(0);
+  };
+
+  const nextPlayer = () => {
+    if (currentIndex < players.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setShowCard(false);
+    } else {
+      setStartRound(true);
+      setShowRound(true);
+    }
+  };
+
+  // Categorías disponibles
+  const categories = [...new Set(words.map(item => item.category))];
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([categories[0]]);
+
+
+
+  const addPlayer = () => {
+    if (playerName.trim() === "") return;
+    setPlayers([...players, { id: players.length + 1, name: playerName, eliminated: false }]);
+    setPlayerName("");
+  };
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+  const selectAllCategories = () => setSelectedCategories([...categories]);
+  const clearAllCategories = () => setSelectedCategories([]);
+
+  // Obtener una palabra aleatoria
+  const getRandomWord = (): Word => {
+    const filteredWords = words.filter(w => selectedCategories.includes(w.category));
+    const index = Math.floor(Math.random() * filteredWords.length);
+    return filteredWords[index];
+  };
+
+  if (!gameStarted) {
+    return (
+      <ScrollView style={{ padding: 20, marginTop: 40, width: "100%", backgroundColor: "#393b3f", margin: "auto", borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8 }}>
+        <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 10, color: "#fff", textAlign: 'center', letterSpacing: 1 }}>
+          Configuración de la Sala
+        </Text>
+        {/* Imagen debajo del título */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Image source={require('../../assets/images/logo.png')} style={{ width: 250, height: 250, borderRadius: 20, marginBottom: 10 }} />
+        </View>
+        {/* Lista de jugadores */}
+        <View style={{ backgroundColor: '#232427', borderRadius: 12, padding: 16, marginBottom: 18 }}>
+          <Text style={{ fontSize: 18, color: "#fff", marginBottom: 6 }}>Jugadores:</Text>
+          {players.length === 0 ? (
+            <Text style={{ color: '#aaa', fontStyle: 'italic' }}>Agrega jugadores para comenzar</Text>
+          ) : (
+            players.map((p) => (
+              <Text key={p.id} style={{ color: '#fff', marginLeft: 8 }}>- {p.name}</Text>
+            ))
+          )}
+          <TextInput
+            placeholder="Nombre del jugador"
+            placeholderTextColor="#aaa"
+            value={playerName}
+            onChangeText={setPlayerName}
+            style={{
+              borderWidth: 1,
+              borderColor: "#555",
+              backgroundColor: '#18191b',
+              padding: 10,
+              marginTop: 12,
+              borderRadius: 8,
+              color: "#fff",
+              marginBottom: 8
+            }}
+          />
+          <Button title="Agregar jugador" onPress={addPlayer} color="#4e9cff" />
+        </View>
+        {/* Cantidad de impostores */}
+        <View style={{ backgroundColor: '#232427', borderRadius: 12, padding: 16, marginBottom: 18 }}>
+          <Text style={{ fontSize: 18, color: "#fff" }}>Cantidad de impostores:</Text>
+          <TextInput
+            placeholder="Ej: 1"
+            placeholderTextColor="#aaa"
+            value={impostors.toString()}
+            onChangeText={(v) => setImpostors(Number(v))}
+            keyboardType="numeric"
+            style={{
+              borderWidth: 1,
+              borderColor: "#555",
+              backgroundColor: '#18191b',
+              padding: 10,
+              marginTop: 12,
+              borderRadius: 8,
+              color: "#fff"
+            }}
+          />
+        </View>
+        {/* Categoría */}
+        <View style={{ backgroundColor: '#232427', borderRadius: 12, padding: 16, marginBottom: 18 }}>
+          <Text style={{ fontSize: 18, color: "#fff", marginBottom: 10 }}>Categorías:</Text>
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => toggleCategory(cat)}
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
+            >
+              <View style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                borderWidth: 2,
+                borderColor: selectedCategories.includes(cat) ? '#4e9cff' : '#555',
+                backgroundColor: selectedCategories.includes(cat) ? '#4e9cff' : 'transparent',
+                marginRight: 10,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                {selectedCategories.includes(cat) && (
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>✓</Text>
+                )}
+              </View>
+              <Text style={{ color: '#fff', fontSize: 16 }}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+            <Button title="Seleccionar todas" onPress={selectAllCategories} color="#4e9cff" />
+            <Button title="Borrar todas" onPress={clearAllCategories} color="#ff4e4e" />
+          </View>
+        </View>
+        {/* Mostrar pista */}
+        <View style={{ backgroundColor: '#232427', borderRadius: 12, padding: 16, marginBottom: 18, flexDirection: "row", alignItems: "center", justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 18, color: "#fff" }}>¿Mostrar pista?</Text>
+          <Switch value={showHint} onValueChange={setShowHint} />
+        </View>
+        {/* Botón para iniciar */}
+        <View style={{ marginTop: 10, marginBottom: 20 }}>
+          <Button title="Iniciar juego" onPress={startGame} color="#4e9cff" />
+        </View>
+      </ScrollView>
+    );
+
+  }
+
+  if (!startRound) {
+    // Pantalla de tarjetas
+    const player = players[currentIndex];
+
+    return (
+      <PlayerTurnCard
+        player={player}
+        showCard={showCard}
+        setShowCard={setShowCard}
+        selectedWord={selectedWord}
+        showHint={showHint}
+        currentIndex={currentIndex}
+        players={players}
+        nextPlayer={nextPlayer}
+      />
+    );
+  }
+
+  if (showRound) {
+  } return (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+      <RoundScreen initialPlayers={players} setNewGame={newGame} />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
