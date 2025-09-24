@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, useWindowDimensions } from "react-native";
 
 type Player = {
     id: number;
@@ -29,6 +29,7 @@ export function PlayerTurnCard({
     players,
     nextPlayer,
 }: PlayerTurnCardProps) {
+    const { width } = useWindowDimensions();
     return (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: "#232427" }}>
             <Text style={{ fontSize: 22, marginBottom: 24, color: "#fff", fontWeight: 'bold', letterSpacing: 1 }}>
@@ -41,7 +42,7 @@ export function PlayerTurnCard({
                 style={{
                     width: 270,
                     height: 170,
-                    backgroundColor: showCard ? '#fff' : '#393b3f',
+                    backgroundColor: showCard ? 'rgba(255, 255, 255, 1)' : '#393b3f',
                     justifyContent: "center",
                     alignItems: "center",
                     borderRadius: 18,
@@ -73,7 +74,9 @@ export function PlayerTurnCard({
                     )
                 ) : (
                     <Text style={{ fontSize: 18, color: "#aaa", textAlign: 'center' }}>
-                        Mantén presionado para ver tu rol
+                        {width < 768 ? 'Haz clic para ver tu rol' : 
+                        "Mantén presionado para ver tu rol"
+                        }
                     </Text>
                 )}
             </Pressable>
