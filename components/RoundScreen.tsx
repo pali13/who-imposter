@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
 import { ScreenMessage } from "./ScreenMessage";
+import { updatePlayerStatsBatch, Update } from "@/services/statsStorage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Player = {
     id: number;
@@ -57,21 +59,49 @@ export default function RoundScreen({ initialPlayers, setNewGame }: Props) {
         }
     }
 
-    const endGame = () => {
+    const endGame = async () => {
         const playersInGame = players.filter(p => !p.eliminated);
         const impostoresDelete = players.filter(p => p.role === "impostor" && p.eliminated);
+
+        const updates: Update[] = [];
 
         if (playersInGame.filter(p => p.role === "impostor").length > 0) {
             const winners = playersInGame.filter(p => p.role === "impostor");
             setWinners(winners);
 
+            winners.forEach(w => {
+                updates.push({ username: w.name, role: "impostor", won: true })
+            });
+            const crewmatesLosers = players.filter(p => p.role === "normal");
+            crewmatesLosers.forEach(l => {
+                updates.push({ username: l.name, role: "crewmate", won: false })
+            });
+
             if (impostoresDelete.length > 0) {
                 setLoser(impostoresDelete);
+                impostoresDelete.forEach(l => {
+                    updates.push({ username: l.name, role: "impostor", won: false })
+                }
+                );
             }
-            return;
         } else {
             setLoser(impostoresDelete);
+            impostoresDelete.forEach(l => {
+                updates.push({ username: l.name, role: "impostor", won: false })
+            });
+            const winners = playersInGame.filter(p => p.role === "normal");
+            setWinners(winners);
+            winners.forEach(w => {
+                updates.push({ username: w.name, role: "crewmate", won: true })
+            });
         }
+
+        const json = await AsyncStorage.getItem("globalStats");
+        const globalStats = json ? JSON.parse(json) : { totalGames: 0 };
+        globalStats.totalGames += 1;
+        await AsyncStorage.setItem("totalGames", JSON.stringify(globalStats.totalGames));
+
+        await updatePlayerStatsBatch(updates);
         setIsEnd(true)
     }
 

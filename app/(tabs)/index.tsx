@@ -1,6 +1,6 @@
 import RoundScreen from "@/components/RoundScreen";
 import React, { useState } from "react";
-import { Button, Image, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Button, Image, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import words from "../../constants/words.json";
 import { PlayerTurnCard } from "@/components/PlayerTurnCard";
 
@@ -103,6 +103,10 @@ export default function App() {
     setPlayerName("");
   };
 
+  const deletePlayer = (id: number) => {
+    setPlayers(players.filter(p => p.id !== id));
+  }
+
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
@@ -135,7 +139,10 @@ export default function App() {
             <Text style={{ color: '#aaa', fontStyle: 'italic' }}>Agrega jugadores para comenzar</Text>
           ) : (
             players.map((p) => (
-              <Text key={p.id} style={{ color: '#fff', marginLeft: 8 }}>- {p.name}</Text>
+              <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text key={p.id} style={{ color: '#fff', marginLeft: 8, marginRight: 8 }}>- {p.name}</Text>
+                <Pressable onPress={() => deletePlayer(p.id)}> <Text style={{color: 'red'}}>X </Text> </Pressable>
+              </View>
             ))
           )}
           <TextInput
