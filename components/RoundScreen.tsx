@@ -210,7 +210,7 @@ export default function RoundScreen({ initialPlayers, setNewGame }: Props) {
                     />
                 </View>
             )}
-            {isEnd && (
+            {!isEnd ? (
                 <View>
                     <TouchableOpacity
                         onPress={nextRound}
@@ -223,8 +223,7 @@ export default function RoundScreen({ initialPlayers, setNewGame }: Props) {
                             shadowColor: "#000",
                             shadowOpacity: 0.15,
                             shadowRadius: 6,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: "#fff",
@@ -237,61 +236,37 @@ export default function RoundScreen({ initialPlayers, setNewGame }: Props) {
                             Siguiente Ronda
                         </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={endGame}
-                        style={{
-                            width: "100%",
-                            marginTop: 12,
-                            backgroundColor: "#ab0921",
-                            paddingVertical: 14,
-                            paddingHorizontal: 40,
-                            borderRadius: 12,
-                            shadowColor: "#000",
-                            shadowOpacity: 0.15,
-                            shadowRadius: 6,
-                        }}
-                    >
-                        <Text
-                            style={{
-                                color: "#fff",
-                                fontWeight: "bold",
-                                fontSize: 18,
-                                letterSpacing: 1,
-                                margin: 'auto',
-
-                            }}
-                        >
-                            Fin del juego
-                        </Text>
-                    </TouchableOpacity>
                 </View>
-            )}
-            <TouchableOpacity
-                onPress={setNewGame}
-                style={{
-                    width: "100%",
-                    marginTop: 12,
-                    backgroundColor: "#4e9cff",
-                    paddingVertical: 14,
-                    paddingHorizontal: 40,
-                    borderRadius: 12,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.15,
-                    shadowRadius: 6,
-                }}
-            >
-                <Text
+            ) : (
+            <View>
+                <TouchableOpacity
+                    onPress={setNewGame}
                     style={{
-                        color: "#fff",
-                        fontWeight: "bold",
-                        fontSize: 18,
-                        letterSpacing: 1,
-                        margin: 'auto',
+                        width: "100%",
+                        marginTop: 12,
+                        backgroundColor: "#4e9cff",
+                        paddingVertical: 14,
+                        paddingHorizontal: 40,
+                        borderRadius: 12,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.15,
+                        shadowRadius: 6,
                     }}
                 >
-                    Volver a empezar
-                </Text>
-            </TouchableOpacity>
+                    <Text
+                        style={{
+                            color: "#fff",
+                            fontWeight: "bold",
+                            fontSize: 18,
+                            letterSpacing: 1,
+                            margin: 'auto',
+                        }}
+                    >
+                        Volver a empezar
+                    </Text>
+                </TouchableOpacity>
+            </View>
+                )}
         </View>
     );
 }

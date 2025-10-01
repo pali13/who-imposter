@@ -1,8 +1,9 @@
 import RoundScreen from "@/components/RoundScreen";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Image, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import words from "../../constants/words.json";
 import { PlayerTurnCard } from "@/components/PlayerTurnCard";
+import { loadRoomConfig, saveRoomConfig } from "@/services/storage";
 
 type Player = {
   id: number;
@@ -29,6 +30,20 @@ export default function App() {
   const [startRound, setStartRound] = useState(false);
   const [showRound, setShowRound] = useState(false);
 
+  useEffect(() => {
+    const loadSavedRoom = async () => {
+      const saved = await loadRoomConfig();
+      if (saved) {
+        setPlayers(saved.players);
+        setImpostors(saved.impostors);
+        setShowHint(saved.showHint ?? false);
+        setSelectedCategories(saved.category ? [saved.category] : [categories[0]]);
+      }
+    };
+    loadSavedRoom();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const newGame = () => {
     setShowHint(false);
     setGameStarted(false);
@@ -40,8 +55,7 @@ export default function App() {
   }
 
   // Iniciar juego
-  const startGame = () => {
-
+  const startGame = async () => {
     if (players.length < 3) {
       alert("Debe haber al menos 3 jugadores.");
       return;
@@ -56,30 +70,40 @@ export default function App() {
       alert("El número de impostores debe ser menor que la mitad del número de jugadores.");
       return;
     }
+
     const randomWord = getRandomWord();
     setSelectedWord(randomWord);
-    // clonar array
+
     let updated = [...players];
 
-    // elegir impostores aleatorios
+    // Elegir impostores aleatorios
     let impostorIds: number[] = [];
     while (impostorIds.length < impostors) {
       const random = Math.floor(Math.random() * updated.length);
-      if (!impostorIds.includes(updated[random].id)) {
-        impostorIds.push(updated[random].id);
-      }
+      if (!impostorIds.includes(updated[random].id)) impostorIds.push(updated[random].id);
     }
 
     updated = updated.map((p) =>
       impostorIds.includes(p.id)
-        ? { ...p, role: "impostor" }
-        : { ...p, role: "normal" }
+        ? { ...p, role: "impostor", eliminated: false }
+        : { ...p, role: "normal", eliminated: false }
     );
 
     setPlayers(updated);
+
+    // Guardar la sala para persistir jugadores y configuración
+    const roomConfig = {
+      players: updated,
+      impostors,
+      showHint,
+      category: selectedCategories[0] // guardamos la primera categoría como referencia
+    };
+    await saveRoomConfig(roomConfig);
+
     setGameStarted(true);
     setCurrentIndex(0);
   };
+
 
   const nextPlayer = () => {
     if (currentIndex < players.length - 1) {
@@ -141,7 +165,7 @@ export default function App() {
             players.map((p) => (
               <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text key={p.id} style={{ color: '#fff', marginLeft: 8, marginRight: 8 }}>- {p.name}</Text>
-                <Pressable onPress={() => deletePlayer(p.id)}> <Text style={{color: 'red'}}>X </Text> </Pressable>
+                <Pressable onPress={() => deletePlayer(p.id)}> <Text style={{ color: 'red' }}>X </Text> </Pressable>
               </View>
             ))
           )}

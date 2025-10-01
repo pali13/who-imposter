@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 const getGlobalStats = async () => {
     const raw = await AsyncStorage.getItem("playerStats");
+    const totalGames = await AsyncStorage.getItem("totalGames") || 0;
     const allStats = raw ? JSON.parse(raw) : {};
 
     let impostorGames = 0;
@@ -19,7 +20,6 @@ const getGlobalStats = async () => {
         crewmateWins += s.crewmateWins || 0;
     });
 
-    const totalGames = await AsyncStorage.getItem("totalGames") || 0;
 
     return {
         totalGames,
@@ -33,18 +33,29 @@ const Stats = () => {
     const [globalStats, setGlobalStats] = useState<any>(null);
     const [playerStats, setPlayerStats] = useState<any>({});
     const [showGlobal, setShowGlobal] = useState(true);
+    const [loading, setLoading] = useState(true);
+
+    const deleteStats = async () => {
+        await AsyncStorage.removeItem("playerStats");
+        await AsyncStorage.removeItem("totalGames");
+        setGlobalStats({ totalGames: 0 });
+        setPlayerStats({});
+    }
+
 
     useEffect(() => {
-
         const loadStats = async () => {
             const data = await getGlobalStats();
+            console.log('Loading stats...', data.totalGames);
             setGlobalStats(data);
             setPlayerStats(data.allStats);
+            setLoading(false); // <- datos ya listos
         };
+
         loadStats();
     }, []);
 
-    if (!globalStats) return <Text style={styles.loading}>Cargando...</Text>;
+    if (loading) return <Text>Cargando estadísticas...</Text>;
 
     return (
         <LinearGradient colors={["#232427", "#393b3f"]} style={styles.gradient}>
@@ -64,7 +75,7 @@ const Stats = () => {
                         <Text style={[styles.tabText, !showGlobal && styles.tabTextActive]}>👤 Por Jugador</Text>
                     </Pressable>
                 </View>
-                <Text style={styles.totalGames}>Total de partidas: <Text style={{fontWeight:'bold'}}>{globalStats.totalGames}</Text></Text>
+                <Text style={styles.totalGames}>Total de partidas: <Text style={{ fontWeight: 'bold' }}>{globalStats.totalGames}</Text></Text>
                 {showGlobal ? (
                     <View>
                         <View style={styles.card}>
@@ -77,7 +88,7 @@ const Stats = () => {
                                     return (
                                         <View style={styles.statRow}>
                                             <Text style={styles.playerName}>{name}</Text>
-                                            <Text style={styles.statValue}>{s.impostorGames} <Text style={{color:'#43c96e'}}>({s.impostorWins} victorias)</Text></Text>
+                                            <Text style={styles.statValue}>{s.impostorGames} <Text style={{ color: '#43c96e' }}>({s.impostorWins} victorias)</Text></Text>
                                         </View>
                                     );
                                 }}
@@ -99,7 +110,7 @@ const Stats = () => {
                                     return (
                                         <View style={styles.statRow}>
                                             <Text style={styles.playerName}>{name}</Text>
-                                            <Text style={styles.statValue}>{s.impostorGames === 0 ? '0%' : `${(s.impostorWins / s.impostorGames * 100).toFixed(1)}%`} <Text style={{color:'#43c96e'}}>({s.impostorWins}/{s.impostorGames})</Text></Text>
+                                            <Text style={styles.statValue}>{s.impostorGames === 0 ? '0%' : `${(s.impostorWins / s.impostorGames * 100).toFixed(1)}%`} <Text style={{ color: '#43c96e' }}>({s.impostorWins}/{s.impostorGames})</Text></Text>
                                         </View>
                                     );
                                 }}
@@ -121,7 +132,7 @@ const Stats = () => {
                                     return (
                                         <View style={styles.statRow}>
                                             <Text style={styles.playerName}>{name}</Text>
-                                            <Text style={styles.statValue}>{(s.impostorWins + s.crewmateWins) === 0 ? '0%' : `${(((s.impostorWins + s.crewmateWins) / s.gamesPlayed) * 100).toFixed(1)}%`} <Text style={{color:'#43c96e'}}>({s.impostorWins + s.crewmateWins}/{s.gamesPlayed})</Text></Text>
+                                            <Text style={styles.statValue}>{(s.impostorWins + s.crewmateWins) === 0 ? '0%' : `${(((s.impostorWins + s.crewmateWins) / s.gamesPlayed) * 100).toFixed(1)}%`} <Text style={{ color: '#43c96e' }}>({s.impostorWins + s.crewmateWins}/{s.gamesPlayed})</Text></Text>
                                         </View>
                                     );
                                 }}
@@ -130,7 +141,6 @@ const Stats = () => {
                     </View>
                 ) : (
                     <View>
-                        <Text style={[styles.cardTitle, { marginTop: 20 }]}>👤 Estadísticas por Jugador</Text>
                         <FlatList
                             data={Object.entries(playerStats)}
                             keyExtractor={([name]) => name}
@@ -139,9 +149,9 @@ const Stats = () => {
                                 return (
                                     <View style={styles.card}>
                                         <Text style={styles.playerName}>{name}</Text>
-                                        <Text style={styles.statValue}>Partidas jugadas: <Text style={{fontWeight:'bold'}}>{s.gamesPlayed}</Text></Text>
-                                        <Text style={styles.statValue}>Impostor → <Text style={{color:'#ff4e4e'}}>{s.impostorGames}</Text> partidas, <Text style={{color:'#43c96e'}}>{s.impostorWins}</Text> victorias (<Text style={{color:'#43c96e'}}>{s.impostorGames > 0 ? ((s.impostorWins / s.impostorGames) * 100).toFixed(1) : 0}%</Text>)</Text>
-                                        <Text style={styles.statValue}>Crewmate → <Text style={{color:'#4e9cff'}}>{s.crewmateGames}</Text> partidas, <Text style={{color:'#43c96e'}}>{s.crewmateWins}</Text> victorias (<Text style={{color:'#43c96e'}}>{s.crewmateGames > 0 ? ((s.crewmateWins / s.crewmateGames) * 100).toFixed(1) : 0}%</Text>)</Text>
+                                        <Text style={styles.statValue}>Partidas jugadas: <Text style={{ fontWeight: 'bold' }}>{s.gamesPlayed}</Text></Text>
+                                        <Text style={styles.statValue}>Impostor → <Text style={{ color: '#ff4e4e' }}>{s.impostorGames}</Text> partidas, <Text style={{ color: '#43c96e' }}>{s.impostorWins}</Text> victorias (<Text style={{ color: '#43c96e' }}>{s.impostorGames > 0 ? ((s.impostorWins / s.impostorGames) * 100).toFixed(1) : 0}%</Text>)</Text>
+                                        <Text style={styles.statValue}>Crewmate → <Text style={{ color: '#4e9cff' }}>{s.crewmateGames}</Text> partidas, <Text style={{ color: '#43c96e' }}>{s.crewmateWins}</Text> victorias (<Text style={{ color: '#43c96e' }}>{s.crewmateGames > 0 ? ((s.crewmateWins / s.crewmateGames) * 100).toFixed(1) : 0}%</Text>)</Text>
                                     </View>
                                 );
                             }}
@@ -149,6 +159,12 @@ const Stats = () => {
                     </View>
                 )}
             </View>
+            <Pressable
+                onPress={() => deleteStats()}
+                style={styles.tabButton}
+            >
+                <Text style={styles.tabText}>📊 Reiniciar estadísiticas</Text>
+            </Pressable>
         </LinearGradient>
     );
 };
