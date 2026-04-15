@@ -26,7 +26,7 @@ export default function App() {
   const [gameStarted, setGameStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showCard, setShowCard] = useState(false);
-  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
+  const [selectedWord, setSelectedWord] = useState<object | null>(null);
   const [startRound, setStartRound] = useState(false);
   const [showRound, setShowRound] = useState(false);
 
@@ -41,7 +41,7 @@ export default function App() {
       }
     };
     loadSavedRoom();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const newGame = () => {
@@ -61,10 +61,10 @@ export default function App() {
       return;
     }
 
-    if (impostors < 1) {
-      alert("Debe haber al menos un impostor.");
-      return;
-    }
+    // if (impostors < 1) {
+    //   alert("Debe haber al menos un impostor.");
+    //   return;
+    // }
 
     if (impostors >= players.length / 2) {
       alert("El número de impostores debe ser menor que la mitad del número de jugadores.");
@@ -143,7 +143,7 @@ export default function App() {
   const getRandomWord = (): Word => {
     const filteredWords = words.filter(w => selectedCategories.includes(w.category));
     const index = Math.floor(Math.random() * filteredWords.length);
-    return filteredWords[index];
+    return filteredWords[0];
   };
 
   if (!gameStarted) {
